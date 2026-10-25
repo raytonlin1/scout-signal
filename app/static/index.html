@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ScoutSignal</title>
+<style>
+:root {
+  color-scheme: light;
+  --surface-0: #f4f4f2; --surface-1: #fcfcfb; --border: #e2e1dc;
+  --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #8a8984;
+  --series-1: #2a78d6; --series-2: #eb6834; --grid: #ecebe7;
+  --seq-1: #cde2fb; --seq-2: #86b6ef; --seq-3: #3987e5; --seq-4: #1c5cab; --seq-5: #0d366b;
+  --ice: #ffffff; --rink-line: #c9c8c2; --red-line: #e34948; --blue-line: #2a78d6;
+  --highlight: #fff1c2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-0: #121211; --surface-1: #1a1a19; --border: #2e2e2c;
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8a8984;
+    --series-1: #3987e5; --series-2: #d95926; --grid: #262624;
+    --seq-1: #184f95; --seq-2: #256abf; --seq-3: #3987e5; --seq-4: #86b6ef; --seq-5: #cde2fb;
+    --ice: #1f1f1e; --rink-line: #3a3a37; --red-line: #e66767; --blue-line: #3987e5;
+    --highlight: #4a3f14;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #121211; --surface-1: #1a1a19; --border: #2e2e2c;
+  --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8a8984;
+  --series-1: #3987e5; --series-2: #d95926; --grid: #262624;
+  --seq-1: #184f95; --seq-2: #256abf; --seq-3: #3987e5; --seq-4: #86b6ef; --seq-5: #cde2fb;
+  --ice: #1f1f1e; --rink-line: #3a3a37; --red-line: #e66767; --blue-line: #3987e5;
+  --highlight: #4a3f14;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--surface-0); color: var(--text-primary);
+       font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { padding: 20px 16px 0; max-width: 1080px; margin: 0 auto; }
+header h1 { margin: 0; font-size: 22px; }
+header p { margin: 4px 0 0; color: var(--text-secondary); }
+nav { display: flex; gap: 4px; flex-wrap: wrap; max-width: 1080px; margin: 16px auto 0; padding: 0 16px; }
+nav button { border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary);
+             padding: 6px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
+nav button[aria-selected="true"] { color: var(--text-primary); border-color: var(--text-secondary); }
+main { max-width: 1080px; margin: 0 auto; padding: 16px; }
+section { display: none; } section.active { display: block; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; overflow-x: auto; }
+h2 { font-size: 17px; margin: 0 0 8px; } h3 { font-size: 15px; margin: 16px 0 6px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { color: var(--text-secondary); font-weight: 600; font-size: 13px; }
+td.num, th.num { text-align: right; }
+textarea { width: 100%; min-height: 130px; font: inherit; padding: 10px; border-radius: 8px;
+           border: 1px solid var(--border); background: var(--surface-0); color: var(--text-primary); }
+input, select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
+                background: var(--surface-0); color: var(--text-primary); }
+button.primary { font: inherit; padding: 7px 14px; border-radius: 6px; border: 0; cursor: pointer;
+                 background: var(--series-1); color: #fff; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+.muted { color: var(--text-muted); font-size: 13px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; }
+.kv dt { color: var(--text-secondary); } .kv dd { margin: 0; }
+.gradebar { height: 8px; border-radius: 4px; background: var(--series-1); }
+.evidence { color: var(--text-secondary); font-size: 13px; }
+mark { background: var(--highlight); color: inherit; border-radius: 3px; }
+svg text { fill: var(--text-secondary); font-size: 11px; }
+#tooltip { position: fixed; pointer-events: none; background: var(--surface-1); border: 1px solid var(--border);
+           border-radius: 6px; padding: 6px 8px; font-size: 12px; display: none; z-index: 10; }
+.brief table { margin: 8px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ScoutSignal</h1>
+  <p>Scouting-report extraction, expected goals, finishing talent and prospect development.</p>
+</header>
+<nav role="tablist">
+  <button role="tab" data-tab="brief" aria-selected="true">Brief</button>
+  <button role="tab" data-tab="prospect">Prospect projector</button>
+  <button role="tab" data-tab="finishing">Finishing</button>
+  <button role="tab" data-tab="shots">Shot map</button>
+  <button role="tab" data-tab="audit">Model audit</button>
+</nav>
+<main>
+  <section id="brief" class="active"><div class="card brief" id="brief-body">Loading…</div></section>
+
+  <section id="prospect">
+    <div class="card">
+      <h2>Paste a scouting report</h2>
+      <textarea id="report-text">Kasper Lindqvist | LW | Shoots L | 6'1" 187 lbs | SHL. Elite stride and quick first step. Shot is not very good, but reads are excellent. Compete is never an issue. Defensive game needs work. Projects as a top-six forward.</textarea>
+      <div class="row">
+        <label>Draft round <select id="draft-round">
+          <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option>
+        </select></label>
+        <button class="primary" id="project-btn">Extract and project</button>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Extracted</h2><div id="extracted" class="muted">Run the extractor to see fields and grades.</div></div>
+      <div class="card"><h2>P(NHL debut) by development year</h2><div id="curve"></div><div id="curve-note" class="muted"></div></div>
+    </div>
+  </section>
+
+  <section id="finishing">
+    <div class="card">
+      <h2>Finishing talent: goals per expected goal, shrunk toward league average</h2>
+      <div class="row">
+        <label><input type="checkbox" id="buy-low"> Buy-low only</label>
+        <label>Position <select id="fin-pos"><option value="">All</option><option>F</option><option>D</option></select></label>
+      </div>
+      <div id="fin-table"></div>
+      <p class="muted">Bars show the 80% credible interval; the dot is the posterior mean. 1.00 = league average.</p>
+    </div>
+  </section>
+
+  <section id="shots">
+    <div class="card">
+      <h2>Shot map</h2>
+      <div class="row"><input id="player-q" placeholder="Search player"><select id="player-select"></select>
+        <select id="shot-season"></select></div>
+      <div id="rink"></div>
+      <p class="muted" id="shot-summary"></p>
+    </div>
+  </section>
+
+  <section id="audit">
+    <div class="card"><h2>Goals per expected goal by season (frozen pre-change model)</h2><div id="oe-chart"></div><p id="verdict"></p></div>
+    <div class="card"><h2>Out-of-season backtest</h2><div id="bt-table"></div></div>
+    <div class="card"><h2>Scouting-report extraction quality</h2><div id="ex-table"></div>
+      <p class="muted">The hand-written set was written alongside the lexicon, so treat it as a smoke test rather than a held-out benchmark.</p></div>
+  </section>
+</main>
+<div id="tooltip"></div>
+<script>
+const $ = s => document.querySelector(s);
+const api = (p, o) => fetch(p, o).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const tip = $("#tooltip");
+function showTip(e, html) { tip.innerHTML = html; tip.style.display = "block";
+  tip.style.left = Math.min(e.clientX + 12, innerWidth - 220) + "px"; tip.style.top = (e.clientY + 12) + "px"; }
+function hideTip() { tip.style.display = "none"; }
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("active", s.id === b.dataset.tab));
+});
+
+// Minimal markdown: headings, tables, paragraphs, bold, italics.
+function md(text) {
+  const out = []; const lines = text.split("\n"); let i = 0;
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/_(.+?)_/g, "<i>$1</i>");
+  while (i < lines.length) {
+    const l = lines[i];
+    if (l.startsWith("|")) {
+      const rows = []; while (i < lines.length && lines[i].startsWith("|")) rows.push(lines[i++]);
+      const cells = r => r.split("|").slice(1, -1).map(c => c.trim());
+      const head = cells(rows[0]); const right = cells(rows[1]).map(c => c.endsWith(":"));
+      out.push("<table><tr>" + head.map((h, j) => `<th class="${right[j] ? "num" : ""}">${inline(h)}</th>`).join("") + "</tr>" +
+        rows.slice(2).map(r => "<tr>" + cells(r).map((c, j) => `<td class="${right[j] ? "num" : ""}">${inline(c)}</td>`).join("") + "</tr>").join("") + "</table>");
+      continue;
+    }
+    if (l.startsWith("## ")) out.push(`<h3>${inline(l.slice(3))}</h3>`);
+    else if (l.startsWith("# ")) out.push(`<h2>${inline(l.slice(2))}</h2>`);
+    else if (l.startsWith("- ")) out.push(`<div>• ${inline(l.slice(2))}</div>`);
+    else if (l.trim()) out.push(`<p>${inline(l)}</p>`);
+    i++;
+  }
+  return out.join("");
+}
+fetch("/api/brief").then(r => r.text()).then(t => $("#brief-body").innerHTML = md(t));
+
+// ---------- Prospect projector
+const SKILL_LABEL = {skating:"Skating", shooting:"Shooting", passing:"Passing", hockey_sense:"Hockey sense",
+                     compete:"Compete", physicality:"Physicality", defense:"Defence"};
+async function project() {
+  const body = {text: $("#report-text").value, draft_round: +$("#draft-round").value};
+  const r = await api("/api/prospects/project", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify(body)});
+  const e = r.extraction;
+  const meta = [["Name", e.name], ["Position", e.position], ["Shoots", e.shoots],
+    ["Height", e.height_in ? `${Math.floor(e.height_in/12)}'${e.height_in%12}"` : null],
+    ["Weight", e.weight_lb ? e.weight_lb + " lb" : null], ["League", e.league], ["Projected role", e.projected_role]];
+  let html = `<dl class="kv">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${v ? esc(v) : '<span class="muted">not found</span>'}</dd>`).join("")}</dl>`;
+  html += `<table style="margin-top:12px"><tr><th>Skill</th><th class="num">Grade</th><th style="width:40%">20–80</th></tr>`;
+  for (const [k, v] of Object.entries(e.skills)) {
+    html += `<tr><td>${SKILL_LABEL[k]}</td><td class="num">${v.grade}</td><td><div class="gradebar" style="width:${(v.grade-20)/60*100}%"></div></td></tr>
+             <tr><td colspan="3" class="evidence">“${esc(v.evidence.join(" … "))}”</td></tr>`;
+  }
+  html += "</table>";
+  if (!Object.keys(e.skills).length) html += `<p class="muted">No skill judgements found.</p>`;
+  $("#extracted").innerHTML = html;
+  drawCurve(r.p_debut_by_year);
+  $("#curve-note").textContent = `${(r.p_debut_within_4_years*100).toFixed(0)}% chance of an NHL debut within 4 years of the draft. Model: discrete-time hazard on extracted grades + draft round.`;
+}
+$("#project-btn").onclick = () => project().catch(err => $("#extracted").textContent = "Error: " + err.message);
+
+function drawCurve(p) {
+  const W = 460, H = 240, m = {l: 40, r: 16, t: 12, b: 32};
+  const x = i => m.l + i * (W - m.l - m.r) / (p.length - 1), y = v => H - m.b - v * (H - m.t - m.b);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Probability of NHL debut by year">`;
+  for (const v of [0, .25, .5, .75, 1]) s += `<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${y(v)+4}" text-anchor="end">${v*100}%</text>`;
+  p.forEach((_, i) => s += `<text x="${x(i)}" y="${H-m.b+16}" text-anchor="middle">${i+1}</text>`);
+  s += `<text x="${(W)/2}" y="${H-2}" text-anchor="middle">Years since draft</text>`;
+  s += `<path d="${p.map((v, i) => (i ? "L" : "M") + x(i) + "," + y(v)).join("")}" fill="none" stroke="var(--series-1)" stroke-width="2"/>`;
+  p.forEach((v, i) => s += `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/>
+     <rect x="${x(i)-18}" y="${m.t}" width="36" height="${H-m.t-m.b}" fill="transparent" data-tip="Year ${i+1}: ${(v*100).toFixed(1)}%"/>`);
+  $("#curve").innerHTML = s + "</svg>";
+  $("#curve").querySelectorAll("[data-tip]").forEach(el => { el.onmousemove = e => showTip(e, el.dataset.tip); el.onmouseleave = hideTip; });
+}
+
+// ---------- Finishing leaderboard
+async function loadFinishing() {
+  const q = new URLSearchParams({limit: 40, buy_low: $("#buy-low").checked});
+  if ($("#fin-pos").value) q.set("position", $("#fin-pos").value);
+  const r = await api("/api/finishing?" + q);
+  const lo = 0.6, hi = 1.6, X = v => ((Math.min(Math.max(v, lo), hi) - lo) / (hi - lo) * 100).toFixed(1);
+  let h = `<table><tr><th>Player</th><th>Pos</th><th class="num">Shots</th><th class="num">Goals</th><th class="num">xG</th><th class="num">Raw G/xG</th><th class="num">Shrunk</th><th style="width:28%">80% interval (0.6–1.6)</th><th class="num">P(&gt;avg)</th></tr>`;
+  for (const p of r.players) {
+    h += `<tr><td>${esc(p.name)}${p.buy_low ? ' <span class="muted">buy-low</span>' : ""}</td><td>${p.position}</td>
+      <td class="num">${p.shots}</td><td class="num">${p.goals}</td><td class="num">${p.xg.toFixed(1)}</td>
+      <td class="num">${p.raw_ratio.toFixed(2)}</td><td class="num"><b>${p.theta_mean.toFixed(2)}</b></td>
+      <td><svg viewBox="0 0 100 12" width="100%" height="12" preserveAspectRatio="none">
+        <line x1="${X(1)}" x2="${X(1)}" y1="0" y2="12" stroke="var(--rink-line)"/>
+        <rect x="${X(p.theta_lo)}" y="4" width="${X(p.theta_hi)-X(p.theta_lo)}" height="4" rx="2" fill="var(--seq-2)"/>
+        <circle cx="${X(p.theta_mean)}" cy="6" r="3" fill="var(--series-1)"/></svg></td>
+      <td class="num">${(p.p_above_avg*100).toFixed(0)}%</td></tr>`;
+  }
+  $("#fin-table").innerHTML = h + "</table>";
+}
+$("#buy-low").onchange = $("#fin-pos").onchange = loadFinishing;
+loadFinishing();
+
+// ---------- Shot map (half rink, attacking right)
+async function searchPlayers() {
+  const ps = await api("/api/players?q=" + encodeURIComponent($("#player-q").value));
+  $("#player-select").innerHTML = ps.map(p => `<option value="${p.player_id}">${esc(p.name)} (${p.position}, ${p.shots} shots)</option>`).join("");
+  if (ps.length) drawShots(ps[0].player_id);
+}
+$("#player-q").oninput = () => { clearTimeout(searchPlayers.t); searchPlayers.t = setTimeout(searchPlayers, 250); };
+$("#player-select").onchange = e => drawShots(e.target.value);
+$("#shot-season").onchange = () => drawShots($("#player-select").value);
+api("/api/health").then(h => {
+  const seasons = h.data.seasons;
+  $("#shot-season").innerHTML = `<option value="">All seasons</option>` +
+    seasons.map(s => `<option ${s === seasons[seasons.length - 1] ? "selected" : ""}>${s}</option>`).join("");
+  searchPlayers();
+});
+
+async function drawShots(id) {
+  const season = $("#shot-season").value;
+  const shots = await api(`/api/players/${id}/shots` + (season ? `?season=${season}` : "")).catch(() => []);
+  const S = 6, x0 = 0, W = 100 * S, H = 85 * S;           // x in [0,100], y in [-42.5,42.5]
+  const px = x => (x - x0) * S, py = y => (42.5 - y) * S;
+  const col = v => v < .04 ? "var(--seq-1)" : v < .08 ? "var(--seq-2)" : v < .15 ? "var(--seq-3)" : v < .3 ? "var(--seq-4)" : "var(--seq-5)";
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Shot locations">
+    <rect x="0" y="0" width="${W}" height="${H}" rx="${28*S}" fill="var(--ice)" stroke="var(--rink-line)" stroke-width="2"/>
+    <line x1="${px(25)}" x2="${px(25)}" y1="0" y2="${H}" stroke="var(--blue-line)" stroke-width="4" opacity=".6"/>
+    <line x1="${px(89)}" x2="${px(89)}" y1="${py(36)}" y2="${py(-36)}" stroke="var(--red-line)" stroke-width="2" opacity=".7"/>
+    <path d="M${px(89)},${py(4)} A${4*S},${4*S} 0 0 0 ${px(89)},${py(-4)}" fill="none" stroke="var(--blue-line)" stroke-width="2" opacity=".6"/>
+    <rect x="${px(89)}" y="${py(3)}" width="${3*S}" height="${6*S}" fill="none" stroke="var(--red-line)" stroke-width="2"/>
+    <circle cx="${px(69)}" cy="${py(22)}" r="${15*S}" fill="none" stroke="var(--red-line)" opacity=".35"/>
+    <circle cx="${px(69)}" cy="${py(-22)}" r="${15*S}" fill="none" stroke="var(--red-line)" opacity=".35"/>`;
+  for (const sh of shots.sort((a, b) => a.is_goal - b.is_goal)) {
+    const r = sh.is_goal ? 9 : 6;
+    s += `<circle cx="${px(sh.x)}" cy="${py(sh.y)}" r="${r}" fill="${col(sh.xg)}" stroke="${sh.is_goal ? "var(--series-2)" : "var(--surface-1)"}" stroke-width="${sh.is_goal ? 3 : 1.5}"
+      data-tip="${sh.season} · ${esc(sh.shot_type)} · xG ${sh.xg.toFixed(3)}${sh.is_goal ? " · GOAL" : ""}"/>`;
+  }
+  const lg = [["<4%", "var(--seq-1)"], ["4–8%", "var(--seq-2)"], ["8–15%", "var(--seq-3)"], ["15–30%", "var(--seq-4)"], ["30%+", "var(--seq-5)"]];
+  lg.forEach(([t, c], i) => s += `<circle cx="${20 + i*90}" cy="${H-18}" r="6" fill="${c}"/><text x="${30 + i*90}" y="${H-14}">${t}</text>`);
+  s += `<circle cx="480" cy="${H-18}" r="7" fill="none" stroke="var(--series-2)" stroke-width="3"/><text x="492" y="${H-14}">goal</text>`;
+  $("#rink").innerHTML = s + "</svg>";
+  $("#rink").querySelectorAll("[data-tip]").forEach(el => { el.onmousemove = e => showTip(e, el.dataset.tip); el.onmouseleave = hideTip; });
+  const g = shots.filter(s => s.is_goal).length, xg = shots.reduce((a, s) => a + s.xg, 0);
+  $("#shot-summary").textContent = `${shots.length} shots, ${g} goals, ${xg.toFixed(1)} xG. Colour = expected-goal probability; orange ring = goal.`;
+}
+
+// ---------- Audit
+api("/api/report").then(r => {
+  const a = r.rule_change_audit;
+  if (a) {
+    const W = 560, H = 220, m = {l: 40, r: 10, t: 12, b: 28}, rows = a.by_season;
+    const max = Math.max(1.4, ...rows.map(d => d.obs_over_exp));
+    const bw = (W - m.l - m.r) / rows.length, y = v => H - m.b - v / max * (H - m.t - m.b);
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Observed over expected goals by season">`;
+    for (const v of [0, .5, 1]) s += `<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${y(v)+4}" text-anchor="end">${v.toFixed(1)}</text>`;
+    rows.forEach((d, i) => {
+      const x = m.l + i * bw + 8, w = bw - 16, top = y(d.obs_over_exp);
+      s += `<path d="M${x},${y(0)} V${top+4} q0,-4 4,-4 H${x+w-4} q4,0 4,4 V${y(0)} Z" fill="${d.in_training ? "var(--series-1)" : "var(--series-2)"}"
+        data-tip="${d.season}: ${d.obs_over_exp.toFixed(2)} goals per xG · max feature PSI ${d.max_feature_psi.toFixed(3)}"/>
+        <text x="${x+w/2}" y="${top-4}" text-anchor="middle">${d.obs_over_exp.toFixed(2)}</text>
+        <text x="${x+w/2}" y="${H-10}" text-anchor="middle">${d.season}</text>`;
+    });
+    s += `<line x1="${m.l}" x2="${W-m.r}" y1="${y(1)}" y2="${y(1)}" stroke="var(--text-muted)" stroke-dasharray="4 3"/>`;
+    $("#oe-chart").innerHTML = s + `</svg><div class="row muted"><span><svg width="10" height="10"><rect width="10" height="10" rx="2" fill="var(--series-1)"/></svg> training seasons</span><span><svg width="10" height="10"><rect width="10" height="10" rx="2" fill="var(--series-2)"/></svg> after the ${a.change_season} rule change</span></div>`;
+    $("#oe-chart").querySelectorAll("[data-tip]").forEach(el => { el.onmousemove = e => showTip(e, el.dataset.tip); el.onmouseleave = hideTip; });
+    const rem = a.remedies;
+    $("#verdict").innerHTML = `<b>Verdict:</b> ${esc(a.verdict)}.` + (rem.evaluated_on ? ` On ${rem.evaluated_on}: frozen ${rem.frozen.obs_over_exp}, intercept-recalibrated ${rem.recalibrated.obs_over_exp}, recency-weighted retrain ${rem.retrained_recency_weighted.obs_over_exp} goals per xG.` : "");
+  }
+  const cols = ["test_season", "model", "n", "log_loss", "brier", "auc", "ece", "obs_over_exp"];
+  $("#bt-table").innerHTML = `<table><tr>${cols.map(c => `<th class="${c === "model" ? "" : "num"}">${c.replace(/_/g, " ")}</th>`).join("")}</tr>` +
+    r.xg_backtest.map(row => `<tr>${cols.map(c => `<td class="${c === "model" ? "" : "num"}">${esc(row[c])}</td>`).join("")}</tr>`).join("") + "</table>";
+  const ex = [["Synthetic (1,500)", r.extraction_synthetic], ["Hand-written (12)", r.extraction_handwritten]].filter(x => x[1]);
+  $("#ex-table").innerHTML = `<table><tr><th>Set</th><th class="num">Mention F1</th><th class="num">Grade MAE</th><th class="num">Within 5</th><th class="num">Position</th><th class="num">Height</th></tr>` +
+    ex.map(([n, e]) => `<tr><td>${n}</td><td class="num">${e.skill_mention_f1}</td><td class="num">${e.grade_mae}</td><td class="num">${e.grade_within_5}</td><td class="num">${e.metadata_accuracy.position}</td><td class="num">${e.metadata_accuracy.height_in}</td></tr>`).join("") + "</table>";
+});
+</script>
+</body>
+</html>

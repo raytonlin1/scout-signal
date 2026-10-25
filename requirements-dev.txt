@@ -1,0 +1,3 @@
+# Tests. Not installed in the deployed image.
+-r requirements.txt
+pytest==9.1.1
